@@ -18,6 +18,115 @@ if not OPENROUTER_API_KEY:
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = "openrouter/zephyr-7b-beta"
 
+def get_llm_response(messages: List[Dict[str, str]], max_tokens: int = 2000, temperature: float = 0.7) -> str:
+    """
+    Send a request to OpenRouter API and return the assistant's response.
+    
+    Args:
+        messages: List of message dictionaries with 'role' and 'content' keys
+        max_tokens: Maximum number of tokens to generate
+        temperature: Sampling temperature (0.0 to 2.0)
+    
+    Returns:
+        str: The assistant's response content
+        
+    Raises:
+        HTTPException: If API key is missing or API request fails
+    """
+    # Check if API key is configured
+    if not OPENROUTER_API_KEY:
+        print("[ERROR] OpenRouter API key is not configured")
+        raise HTTPException(
+            status_code=500, 
+            detail="OpenRouter API key not configured. Please set OPENROUTER_API_KEY environment variable."
+        )
+    
+    # Prepare headers
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    # Prepare request payload
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "temperature": temperature
+    }
+    
+    # Log the request for debugging
+    print(f"[DEBUG] Sending request to OpenRouter API:")
+    print(f"[DEBUG] Model: {OPENROUTER_MODEL}")
+    print(f"[DEBUG] Messages count: {len(messages)}")
+    print(f"[DEBUG] Max tokens: {max_tokens}, Temperature: {temperature}")
+    
+    try:
+        # Send request to OpenRouter API
+        response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload)
+        
+        # Log response status
+        print(f"[DEBUG] OpenRouter API response status: {response.status_code}")
+        
+        # Check if request was successful
+        if response.status_code != 200:
+            error_detail = f"OpenRouter API error: {response.status_code}"
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    error_detail += f" - {error_data['error'].get('message', 'Unknown error')}"
+            except:
+                error_detail += f" - {response.text[:200]}"
+            
+            print(f"[ERROR] {error_detail}")
+            raise HTTPException(status_code=500, detail=error_detail)
+        
+        # Parse response
+        result = response.json()
+        
+        # Extract content from response
+        choices = result.get("choices", [])
+        if not choices:
+            print("[ERROR] No choices in OpenRouter API response")
+            raise HTTPException(status_code=500, detail="OpenRouter API returned no response choices")
+        
+        message = choices[0].get("message", {})
+        content = message.get("content", "")
+        
+        if not content:
+            print("[ERROR] Empty content in OpenRouter API response")
+            raise HTTPException(status_code=500, detail="OpenRouter API returned empty response")
+        
+        # Log successful response
+        print(f"[DEBUG] Successfully received response from OpenRouter API ({len(content)} characters)")
+        
+        return content
+        
+    except requests.exceptions.ConnectionError as e:
+        error_msg = "Cannot connect to OpenRouter API. Please check your internet connection."
+        print(f"[ERROR] Connection error: {e}")
+        raise HTTPException(status_code=500, detail=error_msg)
+        
+    except requests.exceptions.Timeout as e:
+        error_msg = "OpenRouter API request timed out. Please try again."
+        print(f"[ERROR] Timeout error: {e}")
+        raise HTTPException(status_code=500, detail=error_msg)
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"OpenRouter API request failed: {str(e)}"
+        print(f"[ERROR] Request error: {e}")
+        raise HTTPException(status_code=500, detail=error_msg)
+        
+    except json.JSONDecodeError as e:
+        error_msg = "Failed to parse OpenRouter API response"
+        print(f"[ERROR] JSON decode error: {e}")
+        raise HTTPException(status_code=500, detail=error_msg)
+        
+    except Exception as e:
+        error_msg = f"Unexpected error calling OpenRouter API: {str(e)}"
+        print(f"[ERROR] Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
 # Store quizzes in memory
 active_quizzes: Dict[str, List[Dict]] = {}
 
@@ -91,24 +200,12 @@ def ask_question(request: AskRequest):
         f"Question:\n{request.question}"
     )
 
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
-    }
+    messages = [
+        {"role": "system", "content": "You are a helpful medical assistant."},
+        {"role": "user", "content": prompt}
+    ]
 
-    response = requests.post(OPENROUTER_API_URL, headers=headers, json={
-        "model": OPENROUTER_MODEL,
-        "messages": [
-            {"role": "system", "content": "You are a helpful medical assistant."},
-            {"role": "user", "content": prompt}
-        ]
-    })
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"OpenRouter API error: {response.status_code} - {response.text}")
-
-    result = response.json()
-    answer = result.get("choices", [{}])[0].get("message", {}).get("content", "No response generated.")
+    answer = get_llm_response(messages)
     return {"response": answer}
 
 def extract_json_from_text(text: str):
@@ -247,7 +344,7 @@ def generate_quiz(n: int = 10, prompt: str = "", topic: str = "General", session
         parsed = extract_json_from_text(response)
 
         if not parsed or len(parsed) == 0:
-            return {"error": "No valid quiz questions were generated. Please check LM Studio connection."}
+            return {"error": "No valid quiz questions were generated. Please check OpenRouter API connection."}
 
         # Filter out any duplicate questions
         unique_questions = []
@@ -310,35 +407,16 @@ def generate_quiz(n: int = 10, prompt: str = "", topic: str = "General", session
         return {"error": f"Failed to generate quiz: {str(e)}"}
 
 def generate_with_model(query: str):
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
-    }
+    """
+    Generate a response using the OpenRouter API.
+    This is a legacy wrapper around get_llm_response for backwards compatibility.
+    """
+    messages = [
+        {"role": "system", "content": "You are a helpful medical assistant."},
+        {"role": "user", "content": query}
+    ]
     
-    response = requests.post(
-        OPENROUTER_API_URL,
-        headers=headers,
-        json={
-            "model": OPENROUTER_MODEL,
-            "messages": [
-                {"role": "system", "content": "You are a helpful medical assistant."},
-                {"role": "user", "content": query}
-            ],
-            "max_tokens": 2000,
-            "temperature": 0.7
-        }
-    )
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"OpenRouter API error: {response.status_code} - {response.text}")
-
-    result = response.json()
-    content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
-
-    if not content:
-        raise HTTPException(status_code=500, detail="OpenRouter API returned empty response")
-
-    return content
+    return get_llm_response(messages, max_tokens=2000, temperature=0.7)
 
 def normalize(text):
     return text.strip().lower().lstrip('abcd. ').strip()

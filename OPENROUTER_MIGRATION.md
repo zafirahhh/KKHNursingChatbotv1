@@ -33,6 +33,27 @@ This project has been updated to use OpenRouter's Zephyr-7B-Beta API instead of 
 - **Authentication:** Added Bearer token authentication using `OPENROUTER_API_KEY`
 - **Model:** Updated to use `openrouter/zephyr-7b-beta`
 - **Error Handling:** Updated error messages to reflect OpenRouter API instead of LM Studio
+- **Code Structure:** Added centralized `get_llm_response()` function for all API calls with comprehensive error handling and logging
+
+## New Functions Added
+
+### `get_llm_response(messages, max_tokens=2000, temperature=0.7)`
+
+A centralized function for making OpenRouter API calls with:
+- Proper error handling and logging
+- Support for OpenAI-compatible message format
+- Configurable parameters (max_tokens, temperature)
+- Detailed debug logging
+- Helpful error messages for common issues
+
+**Usage:**
+```python
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "What is nursing?"}
+]
+response = get_llm_response(messages)
+```
 
 ## Environment Variables
 
