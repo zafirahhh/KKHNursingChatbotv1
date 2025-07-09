@@ -11,6 +11,71 @@ const SUGGEST_URL_FINAL = `${BASE_API_URL}/suggest`;
 
 console.log(`[CONFIG] Using API base URL: ${BASE_API_URL}`);
 
+// API Health Check function for debugging
+async function testAPIConnection() {
+  console.log('[API TEST] Testing connection to:', BASE_API_URL);
+  
+  try {
+    const response = await fetch(`${BASE_API_URL}/health`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    console.log('[API TEST] Health check status:', response.status, response.statusText);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('[API TEST] Health check response:', data);
+      return true;
+    } else {
+      const errorText = await response.text();
+      console.error('[API TEST] Health check failed:', errorText);
+      return false;
+    }
+  } catch (error) {
+    console.error('[API TEST] Connection failed:', error);
+    return false;
+  }
+}
+
+// Test API connection on page load
+testAPIConnection();
+
+// Global debugging functions (available in console)
+window.debugAPI = {
+  testHealth: testAPIConnection,
+  testAsk: async function(question = "Hello") {
+    console.log('[DEBUG] Testing /ask endpoint with question:', question);
+    try {
+      const response = await fetch(BACKEND_URL_FINAL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: question })
+      });
+      console.log('[DEBUG] Ask response status:', response.status);
+      const data = await response.json();
+      console.log('[DEBUG] Ask response data:', data);
+      return data;
+    } catch (error) {
+      console.error('[DEBUG] Ask test failed:', error);
+      return null;
+    }
+  },
+  getCurrentConfig: function() {
+    return {
+      BASE_API_URL,
+      BACKEND_URL_FINAL,
+      QUIZ_URL_FINAL,
+      QUIZ_EVAL_URL_FINAL,
+      SUGGEST_URL_FINAL,
+      isLocalDevelopment,
+      activeSessionId: typeof activeSessionId !== 'undefined' ? activeSessionId : 'not available'
+    };
+  }
+};
+
+console.log('[DEBUG] Debug functions available: window.debugAPI.testHealth(), window.debugAPI.testAsk(), window.debugAPI.getCurrentConfig()');
+
 // Global AbortController for managing quiz fetch requests
 let quizFetchController = null;
 
@@ -463,11 +528,16 @@ function switchSession(group, chat, index) {
     appendGroupedMessage('user', userText);
     userInput.value = '';
     const isQuiz = activeSessionId.startsWith('quiz');
+    
+    console.log('[Session Info]', 'activeSessionId:', activeSessionId, 'isQuiz:', isQuiz);
+    
     const url = isQuiz ? `${QUIZ_URL_FINAL}?prompt=${encodeURIComponent(userText)}` : BACKEND_URL_FINAL;
     const payload = isQuiz ? null : { question: userText, session: activeSessionId };
     const method = isQuiz ? 'GET' : 'POST';
+    
     console.log('[Submit to]', url);
     console.log('[Payload]', payload);
+    console.log('[Method]', method);
     showTyping();
     try {
       const res = await fetch(url, {
@@ -475,6 +545,25 @@ function switchSession(group, chat, index) {
         headers: { 'Content-Type': 'application/json' },
         body: payload ? JSON.stringify(payload) : undefined
       });
+      
+      console.log('[Response Status]', res.status, res.statusText);
+      console.log('[Response Headers]', res.headers.get('content-type'));
+      
+      // Check if response is OK
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[Error Response Text]', errorText);
+        throw new Error(`Server error: ${res.status} - ${errorText.substring(0, 200)}`);
+      }
+      
+      // Check if response is JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await res.text();
+        console.error('[Non-JSON Response]', responseText);
+        throw new Error(`Server returned non-JSON response: ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await res.json();
       removeTyping();
       
@@ -569,10 +658,27 @@ function switchSession(group, chat, index) {
         body: JSON.stringify({ question: userInput })
       });
       
-      const data = await response.json();
+      console.log('[Suggest Response Status]', response.status, response.statusText);
       
       // Remove loading indicator
       loadingContainer.remove();
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Suggest Error Response]', errorText);
+        displaySuggestions(getFallbackSuggestions());
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('[Suggest Non-JSON Response]', responseText);
+        displaySuggestions(getFallbackSuggestions());
+        return;
+      }
+      
+      const data = await response.json();
       
       if (data.suggestions && Array.isArray(data.suggestions)) {
         // Cache the suggestions
