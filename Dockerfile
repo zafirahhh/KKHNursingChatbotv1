@@ -1,15 +1,17 @@
-# Use Python 3.10 slim as base image
-FROM python:3.10-slim
+# Use Python 3.10.12 slim as base image to avoid pydantic-core compilation issues
+FROM python:3.10.12-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies required for sentence-transformers
+# Install system dependencies (minimal set for sentence-transformers)
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
@@ -17,14 +19,14 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and install wheel
-RUN pip install --upgrade pip setuptools wheel
+# Upgrade pip and install wheel with specific versions
+RUN pip install --upgrade pip==23.3.1 setuptools==68.2.2 wheel==0.41.2
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with preference for binary wheels
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
 # Copy the application code
 COPY . .

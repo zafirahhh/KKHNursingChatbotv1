@@ -1,0 +1,39 @@
+# Render-specific Dockerfile with pre-compiled dependencies
+FROM python:3.10.12-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_NO_CACHE_DIR=1
+
+# Set working directory
+WORKDIR /app
+
+# Install only essential system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip to a stable version
+RUN pip install --upgrade pip==23.3.1
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+
+# Install dependencies with explicit preference for pre-compiled wheels
+RUN pip install --only-binary=all --no-compile -r requirements.txt || \
+    pip install --prefer-binary -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
+USER app
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["uvicorn", "backend:app", "--host", "0.0.0.0", "--port", "8000"]

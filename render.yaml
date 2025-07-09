@@ -4,8 +4,7 @@ services:
     runtime: docker
     plan: starter
     region: oregon
-    buildCommand: docker build -t kkh-nursing-chatbot .
-    startCommand: uvicorn backend:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./Dockerfile.render
     healthCheckPath: /
     envVars:
       - key: PORT
