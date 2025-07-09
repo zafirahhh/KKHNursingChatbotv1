@@ -9,15 +9,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies required for FAISS and sentence-transformers
+# Install system dependencies required for sentence-transformers
 RUN apt-get update && apt-get install -y \
     build-essential \
-    cmake \
-    swig \
-    libopenblas-dev \
-    liblapack-dev \
-    gfortran \
-    pkg-config \
     git \
     wget \
     curl \

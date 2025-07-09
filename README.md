@@ -5,13 +5,13 @@ A fully functional nursing education chatbot for **KK Women's and Children's Hos
 - Answers medical questions using a local knowledge base and Zephyr-7B-Beta LLM
 - Supports an interactive quiz system with MCQs and detailed explanations
 - Features a modern web interface with session management
-- Uses semantic similarity search with FAISS for accurate context retrieval
+- Uses semantic similarity search with sentence-transformers for accurate context retrieval
 - Connects to LM Studio server for AI-powered responses
 
 ## Features
 ### Backend (FastAPI)
 - **Knowledge Base**: Processes `nursing_guide_cleaned.txt` for medical knowledge
-- **FAISS Index**: Semantic similarity search using sentence-transformers
+- **Semantic Search**: Uses sentence-transformers' semantic_search for context retrieval
 - **AI Integration**: Connects to LM Studio server running Zephyr-7B-Beta
 - **Session Management**: Tracks quiz sessions and chat history
 - **Endpoints**:
@@ -94,7 +94,7 @@ The backend allows requests from `http://127.0.0.1:5500`. Update the CORS origin
 
 ## Technologies Used
 - **Backend**: FastAPI, Python
-- **AI/ML**: LM Studio (Zephyr-7B-Beta), Sentence Transformers, FAISS
+- **AI/ML**: LM Studio (Zephyr-7B-Beta), Sentence Transformers
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
 - **Dependencies**: See `requirements.txt`
 

@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict
-from sentence_transformers import SentenceTransformer
-import json, os, requests, re, uuid, faiss, time
+from sentence_transformers import SentenceTransformer, util
+import json, os, requests, re, uuid, time
 from requests.exceptions import RequestException
 
 # Store quizzes in memory
@@ -56,14 +56,21 @@ def chunk_text(text, chunk_size=300, overlap=50):
 
 chunks = chunk_text(knowledge_base)
 embeddings = embedding_model.encode(chunks)
-index = faiss.IndexFlatL2(embeddings.shape[1])
-index.add(embeddings)
 
 @app.post("/ask")
 def ask_question(request: AskRequest):
     question_embedding = embedding_model.encode([request.question])
-    distances, indices = index.search(question_embedding, k=3)
-    context = "\n".join([chunks[i] for i in indices[0]])
+    
+    # Use semantic_search instead of FAISS
+    hits = util.semantic_search(question_embedding, embeddings, top_k=5)
+    
+    # Extract the most relevant chunks
+    relevant_chunks = []
+    for hit in hits[0]:  # hits[0] contains the results for the first query
+        corpus_id = hit['corpus_id']
+        relevant_chunks.append(chunks[corpus_id])
+    
+    context = "\n".join(relevant_chunks)
 
     prompt = (
         f"You are a concise and helpful nursing assistant. "

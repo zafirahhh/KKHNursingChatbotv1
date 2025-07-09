@@ -83,9 +83,8 @@ The backend is configured to allow requests from:
 The Docker image includes all necessary dependencies:
 - Python 3.10
 - FastAPI and Uvicorn
-- FAISS with CPU support
-- Sentence Transformers
-- All build tools (cmake, swig, OpenBLAS)
+- Sentence Transformers for semantic search
+- All required build tools
 
 ## Troubleshooting
 
