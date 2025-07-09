@@ -5,6 +5,18 @@ from typing import List, Dict
 from sentence_transformers import SentenceTransformer, util
 import json, os, requests, re, uuid, time
 from requests.exceptions import RequestException
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# OpenRouter API configuration
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+if not OPENROUTER_API_KEY:
+    print("WARNING: OPENROUTER_API_KEY environment variable not set")
+    
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = "openrouter/zephyr-7b-beta"
 
 # Store quizzes in memory
 active_quizzes: Dict[str, List[Dict]] = {}
@@ -79,8 +91,13 @@ def ask_question(request: AskRequest):
         f"Question:\n{request.question}"
     )
 
-    response = requests.post("http://100.96.212.48:1234/v1/chat/completions", json={
-        "model": "huggingfaceh4__zephyr-7b-beta",
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(OPENROUTER_API_URL, headers=headers, json={
+        "model": OPENROUTER_MODEL,
         "messages": [
             {"role": "system", "content": "You are a helpful medical assistant."},
             {"role": "user", "content": prompt}
@@ -88,7 +105,7 @@ def ask_question(request: AskRequest):
     })
 
     if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Error querying Zephyr-7B-Beta")
+        raise HTTPException(status_code=500, detail=f"OpenRouter API error: {response.status_code} - {response.text}")
 
     result = response.json()
     answer = result.get("choices", [{}])[0].get("message", {}).get("content", "No response generated.")
@@ -288,15 +305,21 @@ def generate_quiz(n: int = 10, prompt: str = "", topic: str = "General", session
         return {"quiz": final_questions, "session_id": session_id}
 
     except requests.exceptions.ConnectionError:
-        return {"error": "Cannot connect to LM Studio. Please ensure LM Studio is running on 100.96.212.48:1234."}
+        return {"error": "Cannot connect to OpenRouter API. Please check your internet connection and API key."}
     except Exception as e:
         return {"error": f"Failed to generate quiz: {str(e)}"}
 
 def generate_with_model(query: str):
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
     response = requests.post(
-        "http://100.96.212.48:1234/v1/chat/completions",
+        OPENROUTER_API_URL,
+        headers=headers,
         json={
-            "model": "huggingfaceh4__zephyr-7b-beta",
+            "model": OPENROUTER_MODEL,
             "messages": [
                 {"role": "system", "content": "You are a helpful medical assistant."},
                 {"role": "user", "content": query}
@@ -307,13 +330,13 @@ def generate_with_model(query: str):
     )
 
     if response.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"LM Studio returned status {response.status_code}")
+        raise HTTPException(status_code=500, detail=f"OpenRouter API error: {response.status_code} - {response.text}")
 
     result = response.json()
     content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     if not content:
-        raise HTTPException(status_code=500, detail="LM Studio returned empty response")
+        raise HTTPException(status_code=500, detail="OpenRouter API returned empty response")
 
     return content
 
