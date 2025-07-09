@@ -1,5 +1,5 @@
-# Render-specific Dockerfile with pre-compiled dependencies
-FROM python:3.10.12-slim
+# Render-specific Dockerfile with Python 3.12 and pre-compiled dependencies
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1

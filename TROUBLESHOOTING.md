@@ -1,30 +1,34 @@
 # Deployment Troubleshooting Guide
 
-## Python 3.13 Compatibility Issues
+## Python 3.12 Optimization
 
-### Problem
-The error you encountered is due to Render using Python 3.13 by default, which causes pydantic-core compilation failures with maturin.
+### Benefits of Python 3.12
+Since FAISS has been removed and replaced with sentence-transformers' semantic_search(), we can now use Python 3.12 which offers:
+- Better performance and faster execution
+- Improved error messages and debugging
+- Native support for latest pydantic versions
+- Better compatibility with modern ML libraries
 
 ### Solutions Implemented
 
-#### 1. Fixed Python Version
-- **runtime.txt**: Specifies Python 3.10.12
-- **Dockerfile**: Uses `python:3.10.12-slim` base image
-- **Dockerfile.render**: Render-specific version with optimizations
+#### 1. Updated Python Version
+- **runtime.txt**: Specifies Python 3.12.0
+- **Dockerfile**: Uses `python:3.12-slim` base image
+- **Dockerfile.render**: Render-specific version with Python 3.12
 
-#### 2. Compatible Dependencies
-Updated `requirements.txt` with stable versions:
+#### 2. Modern Compatible Dependencies
+Updated `requirements.txt` with Python 3.12 optimized versions:
 ```
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-sentence-transformers==2.2.2
-requests==2.31.0
-pydantic==2.4.2          # Downgraded from 2.5.0
-pydantic-core==2.10.1    # Explicitly specified
-python-multipart==0.0.6
-torch==2.0.1            # Stable version
-transformers==4.34.0     # Compatible version
-numpy==1.24.3           # Stable version
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+sentence-transformers>=2.2.2
+requests>=2.31.0
+pydantic>=2.5.0          # Latest stable version
+python-multipart>=0.0.6
+torch>=2.1.0            # Modern PyTorch
+transformers>=4.35.0     # Latest transformers
+numpy>=1.24.0           # Stable numpy
+typing-extensions>=4.8.0 # Python 3.12 compatibility
 ```
 
 #### 3. Optimized Docker Build

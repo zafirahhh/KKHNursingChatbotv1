@@ -1,5 +1,5 @@
-# Use Python 3.10.12 slim as base image to avoid pydantic-core compilation issues
-FROM python:3.10.12-slim
+# Use Python 3.12 slim as base image (better performance, no FAISS needed)
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
