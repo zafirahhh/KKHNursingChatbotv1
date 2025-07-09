@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: kkh-nursing-chatbot-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    buildCommand: docker build -t kkh-nursing-chatbot .
+    startCommand: uvicorn backend:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PYTHONPATH
+        value: /app
+    autoDeploy: true
+    branch: main

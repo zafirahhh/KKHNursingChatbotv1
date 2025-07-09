@@ -34,7 +34,12 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500"],
+    allow_origins=[
+        "http://127.0.0.1:5500",  # Local development
+        "http://localhost:5500",   # Local development
+        "https://*.onrender.com",  # Render deployment
+        "*"  # Allow all origins for now (restrict in production)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
