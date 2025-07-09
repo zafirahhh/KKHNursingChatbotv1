@@ -1,7 +1,15 @@
-const BACKEND_URL_FINAL = "http://127.0.0.1:8000/ask";
-const QUIZ_URL_FINAL = "http://127.0.0.1:8000/quiz";
-const QUIZ_EVAL_URL_FINAL = "http://127.0.0.1:8000/quiz/evaluate";
-const SUGGEST_URL_FINAL = "http://127.0.0.1:8000/suggest";
+// API Configuration - Automatically detects environment
+const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const BASE_API_URL = isLocalDevelopment 
+  ? "http://127.0.0.1:8000" 
+  : "https://kkhnursingchatbot.onrender.com";
+
+const BACKEND_URL_FINAL = `${BASE_API_URL}/ask`;
+const QUIZ_URL_FINAL = `${BASE_API_URL}/quiz`;
+const QUIZ_EVAL_URL_FINAL = `${BASE_API_URL}/quiz/evaluate`;
+const SUGGEST_URL_FINAL = `${BASE_API_URL}/suggest`;
+
+console.log(`[CONFIG] Using API base URL: ${BASE_API_URL}`);
 
 // Global AbortController for managing quiz fetch requests
 let quizFetchController = null;

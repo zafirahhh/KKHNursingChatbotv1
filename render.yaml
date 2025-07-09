@@ -5,11 +5,13 @@ services:
     plan: starter
     region: oregon
     dockerfilePath: ./Dockerfile.render
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: PORT
         value: 8000
       - key: PYTHONPATH
         value: /app
+      - key: RENDER
+        value: "true"
     autoDeploy: true
     branch: main

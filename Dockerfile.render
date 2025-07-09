@@ -25,8 +25,13 @@ COPY requirements.txt .
 RUN pip install --only-binary=all --no-compile -r requirements.txt || \
     pip install --prefer-binary -r requirements.txt
 
-# Copy application code
+# Copy application code and frontend files
 COPY . .
+
+# Ensure all static files are present
+RUN ls -la /app/
+RUN ls -la /app/css/ || echo "CSS directory not found"
+RUN ls -la /app/js/ || echo "JS directory not found"
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app

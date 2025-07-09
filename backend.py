@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict
 from sentence_transformers import SentenceTransformer, util
@@ -153,12 +154,19 @@ class QuizEvalRequest(BaseModel):
 
 app = FastAPI()
 
+# Serve static files (CSS, JS, images) - only in production
+if os.getenv("RENDER"):  # Render sets this environment variable
+    app.mount("/css", StaticFiles(directory="css"), name="css")
+    app.mount("/js", StaticFiles(directory="js"), name="js")
+    app.mount("/data", StaticFiles(directory="data"), name="data")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://127.0.0.1:5500",  # Local development
         "http://localhost:5500",   # Local development
-        "https://*.onrender.com",  # Render deployment
+        "https://kkhnursingchatbot.onrender.com",  # Production frontend
+        "https://*.onrender.com",  # Render deployment wildcard
         "*"  # Allow all origins for now (restrict in production)
     ],
     allow_credentials=True,
@@ -567,7 +575,17 @@ def suggest_follow_up(request: SuggestRequest):
 
 @app.get("/")
 def read_root():
-    return {"message": "KKH Nursing Chatbot API is running."}
+    # In production, serve the HTML file
+    if os.getenv("RENDER"):
+        from fastapi.responses import FileResponse
+        return FileResponse("index.html")
+    else:
+        return {"message": "KKH Nursing Chatbot API is running."}
+
+@app.get("/health")
+def health_check():
+    """API health check endpoint"""
+    return {"status": "healthy", "message": "KKH Nursing Chatbot API is running."}
 
 def normalize_question_for_comparison(question: str) -> str:
     """Normalize question text for comparison to detect duplicates."""
